@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Tarefas</title>
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: auto; }
+    .tarefa { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+    .completa { background: #c8f7c5; }
+    .pendente { background: #f7d8c5; }
+  </style>
+</head>
+<body>
+
+  <h1>📋 Controle de Tarefas</h1>
+
+  <h3>➕ Nova Tarefa</h3>
+  <input id="titulo" placeholder="Título" />
+  <input id="descricao" placeholder="Descrição" />
+  <button onclick="criarTarefa()">Adicionar</button>
+
+  <h3>🗂️ Lista de Tarefas</h3>
+  <div id="tarefas"></div>
+
+<script>
+const API = 'http://localhost:3000/tarefas';
+
+async function listarTarefas() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error('Erro ao buscar tarefas: ' + res.status);
+    const dados = await res.json();
+    const div = document.getElementById('tarefas');
+    div.innerHTML = '';
+    dados.forEach(t => {
+      const statusClass = t.status === 'concluida' ? 'completa' : 'pendente';
+      div.innerHTML += `
+        <div class="tarefa ${statusClass}">
+          <b>${t.titulo}</b> - ${t.status} <br>
+          ${t.descricao || ''} <br>
+          <button onclick="concluirTarefa('${t._id}')">✅ Concluir</button>
+          <button onclick="deletarTarefa('${t._id}')">🗑 Deletar</button>
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao carregar tarefas. Veja o console para mais detalhes.');
+  }
+}
+
+async function criarTarefa() {
+  try {
+    const titulo = document.getElementById('titulo').value.trim();
+    const descricao = document.getElementById('descricao').value.trim();
+    if (!titulo) {
+      alert('O título é obrigatório.');
+      return;
+    }
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, descricao })
+    });
+    if (!res.ok) throw new Error('Erro ao criar tarefa: ' + res.status);
+    document.getElementById('titulo').value = '';
+    document.getElementById('descricao').value = '';
+    await listarTarefas();
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao criar tarefa. Veja o console para mais detalhes.');
+  }
+}
+
+async function concluirTarefa(id) {
+  try {
+    const res = await fetch(`${API}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'concluida' })
+    });
+    if (!res.ok) throw new Error('Erro ao concluir tarefa: ' + res.status);
+    await listarTarefas();
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao concluir tarefa. Veja o console para mais detalhes.');
+  }
+}
+
+async function deletarTarefa(id) {
+  try {
+    const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erro ao deletar tarefa: ' + res.status);
+    await listarTarefas();
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao deletar tarefa. Veja o console para mais detalhes.');
+  }
+}
+
+listarTarefas();
+</script>
+
+</body>
+</html>
